@@ -26,9 +26,9 @@ object ChatRoom:
   def getMessages: ZIO[ChatRoom, Nothing, List[ChatMessage]] =
     ZIO.serviceWithZIO[ChatRoom](_.messages.get)
 
-  def subscribe: ZIO[ChatRoom & Scope, Nothing, Dequeue[ChatMessage]] =
+  def subscribe: ZIO[ChatRoom & Scope, Nothing, UStream[ChatMessage]] =
     ZIO.serviceWithZIO[ChatRoom] { room =>
-      room.subscribers.subscribe
+      room.subscribers.subscribe.map(ZStream.fromQueue(_))
     }
 
   val layer: ZLayer[Any, Nothing, ChatRoom] =

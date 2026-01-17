@@ -1,17 +1,18 @@
 package chat
 
+import chat.Util.*
 import zio.*
 import zio.http.*
 import zio.http.datastar.{*, given}
 import zio.http.template2.*
-import zio.json.*
-import zio.stream.*
 
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, ZoneId}
-import java.util.UUID
 
 object ChatServer extends ZIOAppDefault:
+
+  private val $username = Signal[String]("username")
+  private val $message  = Signal[String]("message")
 
   private val chatPage: Dom = html(
     head(
@@ -26,7 +27,7 @@ object ChatServer extends ZIOAppDefault:
       style.inlineResource("chat.css"),
     ),
     body(
-      dataOnLoad := js"@get('/chat/messages')",
+      dataInit := js"@get('/chat/messages')",
       div(`class` := "header")(
         h1("💬 ZIO Chat"),
         p(
@@ -35,9 +36,9 @@ object ChatServer extends ZIOAppDefault:
         ),
       ),
       div(
-        `class`                         := "container",
-        dataSignals[String]("username") := js"",
-        dataSignals[String]("message")  := js"",
+        `class`                := "container",
+        dataSignals($username) := "",
+        dataSignals($message)  := "",
       )(
         div(`class` := "username-section")(
           label(`for` := "username")("Your Username"),
@@ -50,24 +51,29 @@ object ChatServer extends ZIOAppDefault:
         ),
         div(`class` := "chat-container")(
           div(
-            `class`    := "messages",
-            id         := "messages",
+            `class` := "messages",
+            id      := "messages",
           )(
             div(id := "message-list")
           ),
           div(`class` := "input-area")(
             input(
-              `type`      := "text",
-              id          := "message",
-              placeholder := "Type your message...",
+              `type`         := "text",
+              id             := "message",
+              placeholder    := "Type your message...",
               dataBind("message"),
               required,
+              dataOn.keydown := js"evt.code === 'Enter' && @post('/chat/send')",
             ),
-            button(`type` := "submit", dataOn.click := js"@post('/chat/send')")("Send"),
+            button(
+              `type`               := "submit",
+              dataAttr("disabled") := js"(${$username} === '' || ${$message} === '')",
+              dataOn.click         := js"@post('/chat/send')",
+            )("Send"),
           ),
         ),
       ),
-      script("""
+      script(js"""
         // Auto-scroll to bottom when new messages arrive
         const messagesContainer = document.getElementById('messages');
         const observer = new MutationObserver(() => {
@@ -78,7 +84,6 @@ object ChatServer extends ZIOAppDefault:
     ),
   )
 
-  // Message template function
   private def messageTemplate(msg: ChatMessage): Dom =
     val time = Instant
       .ofEpochMilli(msg.timestamp)
@@ -94,12 +99,9 @@ object ChatServer extends ZIOAppDefault:
     )
 
   private val routes = Routes(
-    // Main chat page
-    Method.GET / "chat" -> handler {
+    Method.GET / "chat"              -> handler {
       Response.text(chatPage.render).addHeader("Content-Type", "text/html")
     },
-
-    // Get all messages (initial load)
     Method.GET / "chat" / "messages" -> events {
       handler {
         for
@@ -111,34 +113,25 @@ object ChatServer extends ZIOAppDefault:
                           mode = ElementPatchMode.Inner,
                         ),
                       )
-          _        <- ChatRoom.subscribe.flatMap { queue =>
-                        ZStream.fromQueue(queue).mapZIO { message =>
-                          ServerSentEventGenerator.patchElements(
-                            messageTemplate(message),
-                            PatchElementOptions(
-                              selector = Some(id("message-list")),
-                              mode = ElementPatchMode.Append,
-                            ),
-                          )
-                        }.runDrain
-                      }
+          messages <- ChatRoom.subscribe
+          _        <- messages.mapZIO { message =>
+                        ServerSentEventGenerator.patchElements(
+                          messageTemplate(message),
+                          PatchElementOptions(
+                            selector = Some(id("message-list")),
+                            mode = ElementPatchMode.Append,
+                          ),
+                        )
+                      }.runDrain
         yield ()
       }
     },
-
-    // Send a new message
-    Method.POST / "chat" / "send" ->
+    Method.POST / "chat" / "send"    ->
       handler { (req: Request) =>
         for
-          MessageRequest(username, message) <-
-            req.body.asString.map(_.fromJson[MessageRequest]).right
-          msg                                = ChatMessage(
-                                                 id = UUID.randomUUID().toString,
-                                                 username = username,
-                                                 content = message,
-                                                 timestamp = java.lang.System.currentTimeMillis(),
-                                               )
-          _                                 <- ChatRoom.addMessage(msg)
+          rq <- req.body.as[MessageRequest]
+          msg = ChatMessage(username = rq.username, content = rq.message)
+          _  <- ChatRoom.addMessage(msg)
         yield Response.ok
       },
   ).sandbox @@ ErrorResponseConfig.debug @@ Middleware.debug
