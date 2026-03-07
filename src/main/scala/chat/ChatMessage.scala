@@ -10,6 +10,8 @@ case class ChatMessage(
   )
 
 object ChatMessage:
+
   def apply(username: String, content: String): ChatMessage =
     ChatMessage(java.util.UUID.randomUUID().toString, username, content, System.currentTimeMillis())
+
   given Schema[ChatMessage] = DeriveSchema.gen[ChatMessage]
