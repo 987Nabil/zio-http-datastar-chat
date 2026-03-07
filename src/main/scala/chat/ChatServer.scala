@@ -11,42 +11,87 @@ import java.time.{Instant, ZoneId}
 
 object ChatServer extends ZIOAppDefault:
 
-  private val $username  = Signal[String]("username")
-  private val $message   = Signal[String]("message")
-  private val $typing    = Signal[String]("typing")
-  private val $isSending = Signal[Boolean]("isSending")
+  private val $username          = Signal[String]("username")
+  private val $message           = Signal[String]("message")
+  private val $typing            = Signal[String]("typing")
+  private val $isSending         = Signal[Boolean]("isSending")
+  private val $connected         = Signal[Boolean]("connected")
+  private val $usernameInput     = Signal[String]("usernameInput")
+  private val $usernameAvailable = Signal[Boolean]("usernameAvailable")
+  private val $joined            = Signal[Boolean]("joined")
 
-  private val chatPage: Dom = mainPage(
-    headContent = Seq(
+  private val chatPage: Dom = html(
+    head(
+      datastarScript,
       meta(charset := "UTF-8"),
       meta(name    := "viewport", content := "width=device-width, initial-scale=1.0"),
       title("ZIO Chat - Real-time Multi-Client Chat"),
       style.inlineResource("chat.css"),
     ),
-    bodyContent = Seq(
+    body(
       div(
-        dataInit := Endpoint(Method.GET / "chat" / "messages").out[String].datastarRequest(())
+        dataInit := Endpoint(Method.GET / "chat" / "messages").out[String].datastarRequest(()),
+        dataOn.window(
+          "datastar-fetch"
+        )        := js"(evt.detail.type === 'error' || evt.detail.type === 'retrying' || evt.detail.type === 'retries-failed') ? ${$connected} = false : undefined",
+      ),
+      div(
+        `class`  := "username-overlay",
+        dataShow := js"!${$joined}",
+      )(
+        div(`class` := "username-modal")(
+          h2("Welcome to ZIO Chat"),
+          p(`class` := "modal-subtitle")("Choose a unique username to join"),
+          div(`class` := "username-input-group")(
+            input(
+              `type`      := "text",
+              placeholder := "Enter username...",
+              dataBind("usernameInput"),
+              dataOn.input.debounce(
+                java.time.Duration.ofMillis(300)
+              )           := js"${$usernameInput}.length > 0 && @post('/chat/check-username')",
+            ),
+            span(
+              `class`  := "username-status available",
+              dataShow := js"${$usernameInput}.length > 0 && ${$usernameAvailable}",
+            )("\u2713 Available"),
+            span(
+              `class`  := "username-status taken",
+              dataShow := js"${$usernameInput}.length > 0 && !${$usernameAvailable}",
+            )("\u2717 Already taken"),
+          ),
+          button(
+            `class`              := "join-btn",
+            dataAttr("disabled") := js"${$usernameInput}.length === 0 || !${$usernameAvailable}",
+            dataOn.click         := js"${$username} = ${$usernameInput}; @post('/chat/join')",
+          )("Join Chat"),
+        )
       ),
       div(`class` := "header")(
         h1("\uD83D\uDCAC ZIO Chat"),
-        p("Real-time Multi-Client Chat with ZIO, ZIO HTTP & Datastar"),
+        p(
+          "Real-time Multi-Client Chat with ZIO, ZIO HTTP & Datastar",
+          span(
+            `class`  := "connection-status",
+            dataShow := js"${$connected}",
+          )("\u25cf CONNECTED"),
+          span(
+            `class`  := "connection-status disconnected",
+            dataShow := js"!${$connected}",
+          )("\u25cf DISCONNECTED"),
+        ),
       ),
       div(
-        `class`                 := "container",
-        dataSignals($username)  := "",
-        dataSignals($message)   := "",
-        dataSignals($typing)    := "",
-        dataSignals($isSending) := false,
+        `class`                         := "container",
+        dataSignals($username)          := "",
+        dataSignals($message)           := "",
+        dataSignals($typing)            := "",
+        dataSignals($isSending)         := false,
+        dataSignals($connected)         := false,
+        dataSignals($usernameInput)     := "",
+        dataSignals($usernameAvailable) := false,
+        dataSignals($joined)            := false,
       )(
-        div(`class` := "username-section")(
-          label(`for` := "username")("Your Username"),
-          input(
-            `type`      := "text",
-            id          := "username",
-            placeholder := "Enter your username...",
-            dataBind("username"),
-          ),
-        ),
         div(`class` := "chat-container")(
           div(
             `class` := "messages",
@@ -55,7 +100,9 @@ object ChatServer extends ZIOAppDefault:
             div(id := "message-list")
           ),
           div(`class` := "typing-indicator", id := "typing-indicator")(
-            span(dataText := js"${$typing}")
+            span(
+              dataText := js"(() => { const others = ${$typing}.split(',').filter(u => u !== '' && u !== ${$username}); if (others.length === 0) return ''; if (others.length === 1) return others[0] + ' is typing...'; return others.join(', ') + ' are typing...'; })()"
+            )
           ),
           div(`class` := "input-area")(
             input(
@@ -74,7 +121,7 @@ object ChatServer extends ZIOAppDefault:
               dataIndicator($isSending),
             )("Send"),
           ),
-        ),
+        )
       ),
       script(js"""
         // Auto-scroll to bottom when new messages arrive
@@ -93,24 +140,22 @@ object ChatServer extends ZIOAppDefault:
       .atZone(ZoneId.systemDefault())
       .format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
-    div(`class` := "message", id := s"msg-${msg.id}")(
+    div(
+      `class`                  := "message",
+      id                       := s"msg-${msg.id}",
+      dataClass("own-message") := js"${$username} === '${msg.username}'",
+    )(
       div(`class` := "message-header")(
         span(`class` := "message-username")(msg.username),
-        span(`class` := "message-time")(time),
         span(
           `class`      := "delete-btn",
           dataShow     := js"${$username} === '${msg.username}'",
           dataOn.click := js"@post('/chat/delete/${msg.id}')",
-        )("\u2715"),
+        )("✕"),
+        span(`class` := "message-time")(time),
       ),
       div(`class` := "message-content")(msg.content),
     )
-
-  private def typingText(users: Set[String]): String =
-    users.toList.sorted match
-      case Nil        => ""
-      case one :: Nil => s"$one is typing..."
-      case many       => s"${many.mkString(", ")} are typing..."
 
   private val routes = Routes(
     Method.GET / "chat"                            -> handler {
@@ -127,6 +172,7 @@ object ChatServer extends ZIOAppDefault:
                                 mode = ElementPatchMode.Inner,
                               ),
                             )
+          _              <- ServerSentEventGenerator.patchSignals("""{"connected": true}""")
           msgStream      <- ChatRoom.subscribe
           typingStream   <- ChatRoom.subscribeTyping
           deletionStream <- ChatRoom.subscribeDeletions
@@ -143,7 +189,7 @@ object ChatServer extends ZIOAppDefault:
                               .merge(
                                 typingStream.mapZIO { users =>
                                   ServerSentEventGenerator.patchSignals(
-                                    s"""{"typing": "${typingText(users)}"}"""
+                                    s"""{"typing": "${users.toList.sorted.mkString(",")}"}"""
                                   )
                                 }
                               )
@@ -184,12 +230,39 @@ object ChatServer extends ZIOAppDefault:
         for _ <- ChatRoom.deleteMessage(messageId)
         yield Response.ok
       },
+    Method.POST / "chat" / "check-username"        ->
+      handler { (req: Request) =>
+        for
+          rq        <- req.readSignals[UsernameCheckRequest]
+          available <- ChatRoom.isUsernameTaken(rq.username).map(!_)
+        yield Response.json(s"""{"usernameAvailable": $available}""")
+      },
+    Method.POST / "chat" / "join"                  ->
+      handler { (req: Request) =>
+        for
+          rq         <- req.readSignals[UsernameCheckRequest]
+          registered <- ChatRoom.registerUser(rq.username)
+        yield
+          if registered then Response.json("""{"joined": true}""")
+          else Response.json("""{"joined": false, "usernameAvailable": false}""")
+      },
   ).sandbox @@ ErrorResponseConfig.debug @@ Middleware.debug
 
   override def run: ZIO[Any, Throwable, Unit] =
     Server
       .serve(routes)
       .provide(
-        Server.default,
+        Server.defaultWith(
+          _.responseCompression(
+            Server.Config.ResponseCompressionConfig(
+              contentThreshold = 0,
+              options = IndexedSeq(
+                Server.Config.CompressionOptions.brotli(quality = 8, lgwin = 25),
+                Server.Config.CompressionOptions.gzip(),
+                Server.Config.CompressionOptions.deflate(),
+              ),
+            )
+          )
+        ),
         ChatRoom.layer,
       )

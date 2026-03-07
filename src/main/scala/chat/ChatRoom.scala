@@ -9,6 +9,7 @@ case class ChatRoom(
     typingUsers: Ref[Set[String]],
     typingSubscribers: Hub[Set[String]],
     deletionSubscribers: Hub[String],
+    activeUsers: Ref[Set[String]],
   )
 
 object ChatRoom:
@@ -20,7 +21,8 @@ object ChatRoom:
       typingUsers         <- Ref.make(Set.empty[String])
       typingSubscribers   <- Hub.unbounded[Set[String]]
       deletionSubscribers <- Hub.unbounded[String]
-    yield ChatRoom(messages, hub, typingUsers, typingSubscribers, deletionSubscribers)
+      activeUsers         <- Ref.make(Set.empty[String])
+    yield ChatRoom(messages, hub, typingUsers, typingSubscribers, deletionSubscribers, activeUsers)
 
   def addMessage(message: ChatMessage): ZIO[ChatRoom, Nothing, Unit] =
     ZIO.serviceWithZIO[ChatRoom] { room =>
@@ -74,6 +76,20 @@ object ChatRoom:
     ZIO.serviceWithZIO[ChatRoom] { room =>
       room.typingSubscribers.subscribe.map(ZStream.fromQueue(_))
     }
+
+  def isUsernameTaken(username: String): ZIO[ChatRoom, Nothing, Boolean] =
+    ZIO.serviceWithZIO[ChatRoom](_.activeUsers.get.map(_.contains(username)))
+
+  def registerUser(username: String): ZIO[ChatRoom, Nothing, Boolean] =
+    ZIO.serviceWithZIO[ChatRoom] { room =>
+      room.activeUsers.modify { users =>
+        if users.contains(username) then (false, users)
+        else (true, users + username)
+      }
+    }
+
+  def unregisterUser(username: String): ZIO[ChatRoom, Nothing, Unit] =
+    ZIO.serviceWithZIO[ChatRoom](_.activeUsers.update(_ - username))
 
   val layer: ZLayer[Any, Nothing, ChatRoom] =
     ZLayer.fromZIO(make)
