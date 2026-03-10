@@ -66,6 +66,7 @@ body {
   animation: none;
 }
 
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -83,38 +84,41 @@ body {
   overflow: hidden;
 }
 
-.username-overlay {
+dialog.username-dialog {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(10px);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(10px);
+  border: none;
+  color: var(--text-primary);
 }
 
-.username-modal {
-  background: var(--bg-secondary);
-  padding: 3rem;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  box-shadow: 0 20px 60px var(--shadow);
-  text-align: center;
-  max-width: 400px;
-  width: 90%;
-}
-
-.username-modal h2 {
+dialog.username-dialog h2 {
   font-size: 1.8rem;
   background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 0.5rem;
+}
+
+dialog.username-dialog > * {
+  max-width: 400px;
+  width: 90%;
+}
+
+dialog.username-dialog > h2,
+dialog.username-dialog > p {
+  width: auto;
 }
 
 .modal-subtitle {
@@ -142,21 +146,6 @@ body {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
-}
-
-.username-status {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.username-status.available {
-  color: var(--success);
-}
-
-.username-status.taken {
-  color: var(--accent);
 }
 
 .join-btn {
@@ -354,11 +343,6 @@ body {
   pointer-events: none;
 }
 
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-secondary);
-}
 
 @media (max-width: 768px) {
   .container {
