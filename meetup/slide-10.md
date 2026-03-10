@@ -12,7 +12,3 @@ data: selector body
 data: elements <div>
 data: elements       I am appended! </div>
 ```
-0 to n events over a single HTTP connection
-
-Browser automatically reconnects 😍
-
