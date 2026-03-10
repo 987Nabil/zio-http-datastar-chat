@@ -1,7 +1,8 @@
 
 # Missing Features
 
-- **No Built-in Reactivity** - No reactive signals or stores (Alpine.js can help, but that's ~29 KiB for two uncoordinated libraries)
+- **No Built-in Reactivity** - No reactive signals or stores
+  - Alpine.js can help, but that's ~29 KiB for two uncoordinated libraries
 - **Complex UI Patterns** - Difficult to implement without JavaScript
 - **Client-Side Validation** - Requires additional JavaScript libraries
 - **Real-time Updates** - Via extension, usually pull-based

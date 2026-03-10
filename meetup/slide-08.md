@@ -7,7 +7,7 @@
 - **No build step required** - Works with plain HTML
 - **Reactive** - Built-in signals & declarative expressions
 - **Bring your own backend** - Works with any server-side framework
-- **Many backend SDKs available** - checkout https://data-star.dev
+- **13 backend SDKs** - Including the Scala one, which I built 😊
 - **Push based via SSE** - Real-time updates out of the box
 - **Tiny Core (3k) - Plugin based**
 

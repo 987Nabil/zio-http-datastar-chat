@@ -9,6 +9,5 @@
 
 🚀 Anders Murphy's **One Billion Checkboxes** - 2500 divs every 200ms to all clients
 
-https://checkboxes.andersmurphy.com
 
 </div>
