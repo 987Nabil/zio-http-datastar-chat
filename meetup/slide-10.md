@@ -1,6 +1,6 @@
 # Server-Sent Events (SSE)
 ```html
-<button data-on-click="@get('/endpoint')"></button>
+<button data-on:click="@get('/endpoint')"></button>
 ```
 ```
 event: datastar-patch-elements
