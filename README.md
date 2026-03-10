@@ -36,10 +36,10 @@ A real-time multi-client chat application built with **Scala 3**, **ZIO**, **ZIO
 
 ## Tech Stack
 
-- **Scala 3**: Modern Scala with new syntax
-- **ZIO 2.1.21**: Functional effects system
-- **ZIO HTTP 3.5.1-SNAPSHOT**: High-performance HTTP server with built-in Datastar SDK
-- **ZIO Schema 1.5.0**: Type-safe schema derivation
+- **Scala 3.7.4**: Modern Scala with new syntax
+- **ZIO 2.1.24**: Functional effects system
+- **ZIO HTTP 3.9.0**: High-performance HTTP server with built-in Datastar SDK
+- **ZIO Schema 1.8.2**: Type-safe schema derivation
 - **Datastar**: Hypermedia-driven frontend framework (loaded from CDN)
 
 ## Running the Application
@@ -140,12 +140,13 @@ ServerSentEventGenerator.patchElements(
 
 ## API Endpoints
 
-| Method | Path            | Description                      |
-|--------|-----------------|----------------------------------|
-| GET    | /chat           | Serve the chat HTML page         |
-| GET    | /chat/messages  | Get all messages (SSE)           |
-| POST   | /chat/send      | Send a new message               |
-| GET    | /chat/stream    | SSE stream for real-time updates |
+| Method | Path              | Description                                  |
+|--------|-------------------|----------------------------------------------|
+| GET    | /chat             | Serve the chat HTML page                     |
+| GET    | /chat/messages    | SSE stream for messages + typing indicators  |
+| POST   | /chat/send        | Send a new message                           |
+| POST   | /chat/typing      | Signal that the user is typing               |
+| POST   | /chat/delete/:id  | Delete a message by ID                       |
 
 ## Customization
 
@@ -163,7 +164,7 @@ Server.serve(routes)
 
 ### Styling
 
-All CSS is embedded in the HTML template in `ChatServer.scala`. Modify the `<style>` section to customize colors, layout, and animations.
+CSS is defined in `src/main/resources/chat.css` and inlined via `style.inlineResource`. Modify that file to customize colors, layout, and animations.
 
 ### Message Persistence
 
@@ -183,5 +184,4 @@ Built with:
 - [ZIO](https://zio.dev/)
 - [ZIO HTTP](https://github.com/zio/zio-http)
 - [Datastar](https://data-star.dev/)
-- [zio-http-datastar by Kit Langton](https://github.com/kitlangton/zio-http-datastar)
 

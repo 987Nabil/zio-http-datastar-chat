@@ -61,6 +61,12 @@ body {
   animation: pulse 2s infinite;
 }
 
+.connection-status.disconnected {
+  background: var(--accent);
+  animation: none;
+}
+
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -78,24 +84,56 @@ body {
   overflow: hidden;
 }
 
-.username-section {
-  background: var(--bg-secondary);
-  padding: 1.5rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px var(--shadow);
-  border: 1px solid var(--border);
-}
-
-.username-section label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.username-section input {
+dialog.username-dialog {
+  position: fixed;
+  inset: 0;
   width: 100%;
-  padding: 0.75rem;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border: none;
+  color: var(--text-primary);
+}
+
+dialog.username-dialog h2 {
+  font-size: 1.8rem;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--success) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+dialog.username-dialog > * {
+  max-width: 400px;
+  width: 90%;
+}
+
+dialog.username-dialog > h2,
+dialog.username-dialog > p {
+  width: auto;
+}
+
+.modal-subtitle {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+}
+
+.username-input-group {
+  margin-bottom: 1.5rem;
+  text-align: left;
+}
+
+.username-input-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
   background: var(--bg-primary);
   border: 2px solid var(--border);
   border-radius: 8px;
@@ -104,10 +142,33 @@ body {
   transition: all 0.3s ease;
 }
 
-.username-section input:focus {
+.username-input-group input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);
+}
+
+.join-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.join-btn:hover:not([disabled]) {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+.join-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .chat-container {
@@ -153,6 +214,10 @@ body {
   box-shadow: 0 2px 4px var(--shadow);
 }
 
+.message.own-message {
+  border-left-color: var(--success);
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -166,9 +231,9 @@ body {
 
 .message-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
+  gap: 0.75rem;
 }
 
 .message-username {
@@ -180,6 +245,28 @@ body {
 .message-time {
   font-size: 0.75rem;
   color: var(--text-secondary);
+  margin-left: auto;
+}
+
+.delete-btn {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.message:hover .delete-btn {
+  opacity: 0.6;
+}
+
+.delete-btn:hover {
+  opacity: 1 !important;
+  color: var(--accent);
+  background: rgba(233, 69, 96, 0.15);
 }
 
 .message-content {
@@ -188,13 +275,21 @@ body {
   word-wrap: break-word;
 }
 
+.typing-indicator {
+  padding: 0.25rem 1.5rem 0.5rem;
+  min-height: 1.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .input-area {
   padding: 1.5rem;
   background: var(--bg-primary);
   border-top: 1px solid var(--border);
-}
-
-.input-area {
   display: flex;
   gap: 1rem;
 }
@@ -239,11 +334,15 @@ body {
   transform: translateY(0);
 }
 
-.empty-state {
-  text-align: center;
-  padding: 3rem;
-  color: var(--text-secondary);
+.input-area button[data-indicator] {
+  transition: opacity 0.2s ease;
 }
+
+.input-area button.datastar-indicator {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
 
 @media (max-width: 768px) {
   .container {
@@ -266,4 +365,3 @@ body {
     width: 100%;
   }
 }
-
