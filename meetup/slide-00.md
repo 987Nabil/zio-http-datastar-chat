@@ -2,7 +2,7 @@
 
 # Backend driven Frontends
 
-Modern, Powerful and Blazingly Fast with Datastar
+Modern, Powerful and Blazingly Fast with Datastar & zio-http
 ---
 ### Nabil Abdel-Hafeez
 
