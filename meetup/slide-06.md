@@ -1,15 +1,11 @@
-# HTML First
+# HTML Attributes with `data-*`
 
-> The HTML First approach is...
-> 
-> - If you can do it with HTML, use HTML
-> - If you can't do it with HTML, use CSS
-> - If you can't do it with HTML or CSS, use Javascript
+Datastar uses HTML5 **data attributes** for all its functionality:
 
-https://html-first.com/guidelines
-
-Example: Use `<dialog>` instead of a custom modal
-
-YouTube: What's new in web UI
-
-https://youtu.be/VTCIStB6y8s
+```html
+<div data-signals:count='0'>
+  <button data-on:click="$count++">
+    Clicked <span data-text="$count">0</span> times
+  </button>
+</div>
+```

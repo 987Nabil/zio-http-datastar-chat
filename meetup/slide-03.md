@@ -1,6 +1,5 @@
-<div align="center" style="display: flex; align-items: center; justify-content: center; height: 100vh;">
+<div align="center">
 
-# Alternatives?
+<img src="https://htmx.org/img/memes/dbtohtml.png" alt="HTMX Meme" width="722"/>
 
 </div>
-

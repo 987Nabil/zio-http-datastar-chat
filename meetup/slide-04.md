@@ -1,15 +1,15 @@
-<div align="center" style="margin-top: 100px;">
+# Hypermedia — Back to the Roots
 
-<img src="https://htmx.org/img/htmx_logo.1.png" alt="HTMX" width="300"/>
+- Server renders HTML, browser displays it — the original web model
+- Most popular: **HTMX** (~14 KiB)
+  - Alpine.js often needed alongside (~29 KiB combined)
+- But HTMX is missing:
+  - No reactivity or data binding
+  - No built-in real-time updates (SSE via extension, pull-based)
+  - Complex UI patterns still need JavaScript
 
-<div style="font-size: 80px; margin: 40px 0;">↓</div>
+<div align="center" style="margin-top: 60px; font-size: 24px;">
 
-# Hypermedia
+💡 **We need reactivity with hypermedia benefits**
 
-<div style="margin-top: 60px; font-size: 20px;">
-<p><strong>High power tools for HTML</strong></p>
-<p>Server-side rendering • Progressive enhancement • Minimal JavaScript</p>
 </div>
-
-</div>
-
