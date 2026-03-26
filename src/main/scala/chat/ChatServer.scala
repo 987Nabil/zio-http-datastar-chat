@@ -11,7 +11,7 @@ import java.time.{Instant, ZoneId}
 
 object ChatServer extends ZIOAppDefault:
 
-  private val $username  = Signal[String]("username")
+  private val $name  = Signal[String]("username")
   private val $message   = Signal[String]("message")
   private val $connected = Signal[Boolean]("connected")
   private val $isSending = Signal[Boolean]("isSending")
@@ -37,13 +37,13 @@ object ChatServer extends ZIOAppDefault:
             `type`         := "text",
             placeholder    := "Enter username...",
             dataBind("username"),
-            dataOn.keydown := js"evt.code === 'Enter' && ${$username}.length > 0 && @get('/chat/messages')",
+            dataOn.keydown := js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
             dataIndicator($connected),
           )
         ),
         button(
           `class`              := "join-btn",
-          dataAttr("disabled") := js"${$username}.length === 0",
+          dataAttr("disabled") := js"${$name}.length === 0",
           dataOn.click         := js"@get('/chat/messages')",
           dataIndicator($connected),
         )("Join Chat"),
@@ -55,18 +55,15 @@ object ChatServer extends ZIOAppDefault:
         p(
           "Real-time Multi-Client Chat with ZIO, ZIO HTTP & Datastar",
           span(
-            `class`  := "connection-status",
-            dataShow := js"${$connected}",
-          )("● CONNECTED"),
-          span(
-            `class`  := "connection-status disconnected",
-            dataShow := js"!${$connected}",
-          )("● DISCONNECTED"),
+            `class`                  := "connection-status",
+            dataClass("disconnected") := js"!${$connected}",
+            dataText := js"${$connected} ? '● CONNECTED' : '● DISCONNECTED'",
+          ),
         ),
       ),
       div(
         `class`                := "container",
-        dataSignals($username) := "",
+        dataSignals($name) := "",
         dataSignals($message)  := "",
       )(
         div(`class` := "chat-container")(
@@ -82,15 +79,20 @@ object ChatServer extends ZIOAppDefault:
               `type`                            := "text",
               placeholder                       := "Type your message...",
               dataBind("message"),
-              dataOn.keydown                    := js"if(evt.code === 'Enter'){@post('/chat/send'); ${$message} = ''}",
               dataOn.input.throttle(150.millis) := js"@post('/chat/typing')",
-            ),
+              dataOn.keydown                    :=
+                js"""if(evt.code === 'Enter') {
+                       @post('/chat/send')
+                       ${$message} = ''
+                     }""",
+              ),
             button(
               `type`       := "button",
-              dataAttr(
-                "disabled"
-              )            := js"!${$connected} || ${$username} === '' || ${$message} === ''",
-              dataOn.click := js"@post('/chat/send'); ${$message} = ''",
+              dataAttr("disabled") := js"!${$connected} || ${$name} === '' || ${$message} === ''",
+              dataOn.click :=
+                js"""@post('/chat/send')
+                     ${$message} = ''
+                  """,
               dataIndicator($isSending),
             )("Send"),
           ),
@@ -115,14 +117,14 @@ object ChatServer extends ZIOAppDefault:
     div(
       `class`                  := "message",
       id                       := s"msg-${msg.id}",
-      dataClass("own-message") := js"${$username} === '${msg.username}'",
+      dataClass("own-message") := js"${$name} === '${msg.username}'",
       dataInit                 := js"el.scrollIntoView()",
     )(
       div(`class` := "message-header")(
         span(`class` := "message-username")(msg.username),
         span(
           `class`      := "delete-btn",
-          dataShow     := js"${$username} === '${msg.username}'",
+          dataShow     := js"${$name} === '${msg.username}'",
           dataOn.click := js"@post('/chat/delete/${msg.id}')",
         )("✕"),
         span(`class` := "message-time")(time),
