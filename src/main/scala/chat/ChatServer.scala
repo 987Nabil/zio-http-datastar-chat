@@ -67,11 +67,7 @@ object ChatServer extends ZIOAppDefault:
         dataSignals($message) := "",
         div(
           `class` := "chat-container",
-          div(
-            `class` := "messages",
-            id      := "messages",
-            div(id := "message-list"),
-          ),
+          div(`class` := "messages", id := "messages"),
           div(`class` := "typing-indicator", id := "typing-indicator"),
           div(
             `class` := "input-area",
@@ -147,7 +143,7 @@ object ChatServer extends ZIOAppDefault:
           _          <- ServerSentEventGenerator.patchElements(
                           messages.map(messageTemplate),
                           PatchElementOptions(
-                            selector = Some(id("message-list")),
+                            selector = Some(id("messages")),
                             mode = ElementPatchMode.Inner,
                           ),
                         )
@@ -157,7 +153,7 @@ object ChatServer extends ZIOAppDefault:
                             ServerSentEventGenerator.patchElements(
                               messageTemplate(msg),
                               PatchElementOptions(
-                                selector = Some(id("message-list")),
+                                selector = Some(id("messages")),
                                 mode = ElementPatchMode.Append,
                               ),
                             )
