@@ -29,52 +29,52 @@ object ChatServer extends ZIOAppDefault:
         `class`  := "username-dialog",
         `open`,
         dataShow := js"!${$connected}",
-      )(
         h2("Welcome to ZIO Chat"),
-        p(`class` := "modal-subtitle")("Choose a username to join"),
-        div(`class` := "username-input-group")(
+        p(`class` := "modal-subtitle", "Choose a username to join"),
+        div(
+          `class` := "username-input-group",
           input(
             `type`         := "text",
             placeholder    := "Enter username...",
             dataBind("username"),
             dataOn.keydown := js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
             dataIndicator($connected),
-          )
+          ),
         ),
         button(
           `class`              := "join-btn",
           dataAttr("disabled") := js"${$name}.length === 0",
           dataOn.click         := js"@get('/chat/messages')",
           dataIndicator($connected),
-        )("Join Chat"),
+          "Join Chat",
+        ),
       ),
       div(
-        `class` := "header"
-      )(
+        `class` := "header",
         h1("\uD83D\uDCAC ZIO Chat"),
         p(
           "Real-time Multi-Client Chat with ZIO, ZIO HTTP & Datastar",
           span(
-            `class`                  := "connection-status",
+            `class`                   := "connection-status",
             dataClass("disconnected") := js"!${$connected}",
             dataText := js"${$connected} ? '● CONNECTED' : '● DISCONNECTED'",
           ),
         ),
       ),
       div(
-        `class`                := "container",
-        dataSignals($name) := "",
-        dataSignals($message)  := "",
-      )(
-        div(`class` := "chat-container")(
+        `class`               := "container",
+        dataSignals($name)    := "",
+        dataSignals($message) := "",
+        div(
+          `class` := "chat-container",
           div(
             `class` := "messages",
             id      := "messages",
-          )(
-            div(id := "message-list")
+            div(id := "message-list"),
           ),
           div(`class` := "typing-indicator", id := "typing-indicator"),
-          div(`class` := "input-area")(
+          div(
+            `class` := "input-area",
             input(
               `type`                            := "text",
               placeholder                       := "Type your message...",
@@ -85,18 +85,19 @@ object ChatServer extends ZIOAppDefault:
                        @post('/chat/send')
                        ${$message} = ''
                      }""",
-              ),
+            ),
             button(
-              `type`       := "button",
+              `type`               := "button",
               dataAttr("disabled") := js"!${$connected} || ${$name} === '' || ${$message} === ''",
-              dataOn.click :=
+              dataOn.click         :=
                 js"""@post('/chat/send')
                      ${$message} = ''
                   """,
               dataIndicator($isSending),
-            )("Send"),
+              "Send",
+            ),
           ),
-        )
+        ),
       ),
     ),
   )
@@ -119,17 +120,18 @@ object ChatServer extends ZIOAppDefault:
       id                       := s"msg-${msg.id}",
       dataClass("own-message") := js"${$name} === '${msg.username}'",
       dataInit                 := js"el.scrollIntoView()",
-    )(
-      div(`class` := "message-header")(
-        span(`class` := "message-username")(msg.username),
+      div(
+        `class` := "message-header",
+        span(`class` := "message-username", msg.username),
         span(
           `class`      := "delete-btn",
           dataShow     := js"${$name} === '${msg.username}'",
           dataOn.click := js"@post('/chat/delete/${msg.id}')",
-        )("✕"),
-        span(`class` := "message-time")(time),
+          "✕",
+        ),
+        span(`class` := "message-time", time),
       ),
-      div(`class` := "message-content")(msg.content),
+      div(`class` := "message-content", msg.content),
     )
 
   private val routes = Routes(
