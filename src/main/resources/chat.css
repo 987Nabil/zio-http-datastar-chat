@@ -126,12 +126,8 @@ dialog.username-dialog > p {
   margin-bottom: 2rem;
 }
 
-.username-input-group {
+dialog.username-dialog input {
   margin-bottom: 1.5rem;
-  text-align: left;
-}
-
-.username-input-group input {
   width: 100%;
   padding: 0.75rem 1rem;
   background: var(--bg-primary);
@@ -142,7 +138,7 @@ dialog.username-dialog > p {
   transition: all 0.3s ease;
 }
 
-.username-input-group input:focus {
+dialog.username-dialog input:focus {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(233, 69, 96, 0.1);

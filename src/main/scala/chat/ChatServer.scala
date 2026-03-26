@@ -31,15 +31,12 @@ object ChatServer extends ZIOAppDefault:
         dataShow := js"!${$connected}",
         h2("Welcome to ZIO Chat"),
         p(`class` := "modal-subtitle", "Choose a username to join"),
-        div(
-          `class` := "username-input-group",
-          input(
-            `type`         := "text",
-            placeholder    := "Enter username...",
-            dataBind("username"),
-            dataOn.keydown := js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
-            dataIndicator($connected),
-          ),
+        input(
+          `type`         := "text",
+          placeholder    := "Enter username...",
+          dataBind("username"),
+          dataOn.keydown := js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
+          dataIndicator($connected),
         ),
         button(
           `class`              := "join-btn",
