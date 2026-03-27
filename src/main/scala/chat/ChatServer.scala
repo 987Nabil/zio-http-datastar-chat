@@ -130,7 +130,7 @@ object ChatServer extends ZIOAppDefault:
       div(`class` := "message-content", msg.content),
     )
 
-  private def render(currentUser: String = "") =
+  private def render(currentUser: String) =
     for
       messages    <- ChatRoom.getMessages
       typingUsers <- ChatRoom.getTypingUsers
@@ -138,7 +138,7 @@ object ChatServer extends ZIOAppDefault:
 
   private val routes = Routes(
     Method.GET / "chat"                            -> handler {
-      render().map(Response.html)
+      render("").map(Response.html)
     },
     Method.GET / "chat" / "messages"               -> events {
       handler { (req: Request) =>
