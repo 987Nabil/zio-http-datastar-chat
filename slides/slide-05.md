@@ -9,7 +9,6 @@
 - **Bring your own backend** - Works with any server-side framework
 - **13 backend SDKs** - Including the Scala one, built by me 🚀
 - **Push based via SSE** - Real-time updates out of the box
-- **Tiny Core (3k) - Plugin based**
 
 <div align="center" style="margin-top: 60px; font-size: 22px;">
 
