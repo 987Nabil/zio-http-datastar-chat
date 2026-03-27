@@ -77,7 +77,7 @@ object ChatServer extends ZIOAppDefault:
               dataBind("message"),
               dataOn.input.throttle(150.millis) := js"@post('/chat/typing')",
               dataOn.keydown                    :=
-                js"""if(evt.code === 'Enter') {
+                js"""if(evt.code === 'Enter' && ${$message}.trim() !== '') {
                      @post('/chat/send')
                      ${$message} = ''
                    }""",
@@ -157,8 +157,9 @@ object ChatServer extends ZIOAppDefault:
       handler { (req: Request) =>
         for
           rq <- req.readSignals[MessageRequest]
-          msg = Message(rq.username, rq.message)
-          _  <- ChatRoom.addMessage(msg)
+          _  <- ZIO.when(rq.message.trim.nonEmpty) {
+                  ChatRoom.addMessage(Message(rq.username, rq.message))
+                }
           _  <- ChatRoom.clearTyping(rq.username)
         yield Response.ok
       },
