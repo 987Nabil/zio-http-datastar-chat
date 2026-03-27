@@ -37,7 +37,7 @@ object ChatServer extends ZIOAppDefault:
           `type`               := "text",
           placeholder          := "Enter username...",
           dataBind("username"),
-          dataOn.keydown       := 
+          dataOn.keydown       :=
             js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
           dataIndicator($connected),
         ),
@@ -157,9 +157,7 @@ object ChatServer extends ZIOAppDefault:
       handler { (req: Request) =>
         for
           rq <- req.readSignals[MessageRequest]
-          _  <- ZIO.when(rq.message.trim.nonEmpty) {
-                  ChatRoom.addMessage(Message(rq.username, rq.message))
-                }
+          _  <- ChatRoom.addMessage(Message(rq.username, rq.message)).when(rq.message.trim.nonEmpty)
           _  <- ChatRoom.clearTyping(rq.username)
         yield Response.ok
       },
