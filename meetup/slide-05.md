@@ -7,7 +7,7 @@
 - **No build step required** - Works with plain HTML
 - **Reactive** - Built-in signals & declarative expressions
 - **Bring your own backend** - Works with any server-side framework
-- **13 backend SDKs** - Including the Scala one, build by me 🚀
+- **13 backend SDKs** - Including the Scala one, built by me 🚀
 - **Push based via SSE** - Real-time updates out of the box
 - **Tiny Core (3k) - Plugin based**
 
