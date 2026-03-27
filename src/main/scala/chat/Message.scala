@@ -1,23 +1,16 @@
 package chat
 
-enum Message:
-
-  case Chat(
-      id: String,
-      username: String,
-      content: String,
-      timestamp: Long,
-    ) extends Message
-
-  case Typing(users: Set[String])
-
-  case Deletion(messageId: String)
-
+case class Message(
+    id: String,
+    username: String,
+    content: String,
+    timestamp: Long,
+  )
 
 object Message:
 
-  def chat(username: String, content: String): Message.Chat =
-    Chat(
+  def apply(username: String, content: String): Message =
+    Message(
       java.util.UUID.randomUUID().toString,
       username,
       content,

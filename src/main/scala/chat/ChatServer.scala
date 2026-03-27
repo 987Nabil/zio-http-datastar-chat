@@ -3,7 +3,6 @@ package chat
 import zio.*
 import zio.http.*
 import zio.http.datastar.{*, given}
-
 import zio.http.template2.*
 
 import java.time.format.DateTimeFormatter
@@ -11,12 +10,15 @@ import java.time.{Instant, ZoneId}
 
 object ChatServer extends ZIOAppDefault:
 
-  private val $name  = Signal[String]("username")
+  private val $name      = Signal[String]("username")
   private val $message   = Signal[String]("message")
   private val $connected = Signal[Boolean]("connected")
   private val $isSending = Signal[Boolean]("isSending")
 
-  private val chatPage: Dom = html(
+  private def chatPage(
+      messages:    List[Message],
+      typingUsers: Set[String],
+    ): Dom = html(
     head(
       datastarScript,
       meta(charset := "UTF-8"),
@@ -26,16 +28,17 @@ object ChatServer extends ZIOAppDefault:
     ),
     body(
       dialog(
-        `class`  := "username-dialog",
+        `class`               := "username-dialog",
         `open`,
-        dataShow := js"!${$connected}",
+        dataShow              := js"!${$connected}",
         h2("Welcome to ZIO Chat"),
-        p(`class` := "modal-subtitle", "Choose a username to join"),
+        p(`class`              := "modal-subtitle", "Choose a username to join"),
         input(
-          `type`         := "text",
-          placeholder    := "Enter username...",
+          `type`               := "text",
+          placeholder          := "Enter username...",
           dataBind("username"),
-          dataOn.keydown := js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
+          dataOn.keydown       := 
+            js"evt.code === 'Enter' && ${$name}.length > 0 && @get('/chat/messages')",
           dataIndicator($connected),
         ),
         button(
@@ -47,14 +50,14 @@ object ChatServer extends ZIOAppDefault:
         ),
       ),
       div(
-        `class` := "header",
+        `class`               := "header",
         h1("\uD83D\uDCAC ZIO Chat"),
         p(
           "Real-time Multi-Client Chat with ZIO, ZIO HTTP & Datastar",
           span(
             `class`                   := "connection-status",
             dataClass("disconnected") := js"!${$connected}",
-            dataText := js"${$connected} ? '● CONNECTED' : '● DISCONNECTED'",
+            dataText                  := js"${$connected} ? '● CONNECTED' : '● DISCONNECTED'",
           ),
         ),
       ),
@@ -64,10 +67,10 @@ object ChatServer extends ZIOAppDefault:
         dataSignals($message) := "",
         div(
           `class` := "chat-container",
-          div(`class` := "messages", id := "messages"),
-          div(`class` := "typing-indicator", id := "typing-indicator"),
+          div(`class` := "messages", messages.map(messageTemplate)),
+          div(`class` := "typing-indicator", typingText(typingUsers)),
           div(
-            `class` := "input-area",
+            `class`   := "input-area",
             input(
               `type`                            := "text",
               placeholder                       := "Type your message...",
@@ -75,17 +78,18 @@ object ChatServer extends ZIOAppDefault:
               dataOn.input.throttle(150.millis) := js"@post('/chat/typing')",
               dataOn.keydown                    :=
                 js"""if(evt.code === 'Enter') {
-                       @post('/chat/send')
-                       ${$message} = ''
-                     }""",
+                     @post('/chat/send')
+                     ${$message} = ''
+                   }""",
             ),
             button(
-              `type`               := "button",
-              dataAttr("disabled") := js"!${$connected} || ${$name} === '' || ${$message} === ''",
-              dataOn.click         :=
+              `type`                            := "button",
+              dataAttr("disabled")              :=
+                js"!${$connected} || ${$name} === '' || ${$message} === ''",
+              dataOn.click                      :=
                 js"""@post('/chat/send')
-                     ${$message} = ''
-                  """,
+                   ${$message} = ''
+                """,
               dataIndicator($isSending),
               "Send",
             ),
@@ -95,14 +99,13 @@ object ChatServer extends ZIOAppDefault:
     ),
   )
 
-  private def typingText(users: Set[String], exclude: String): String =
-    val others = (users - exclude).toList.sorted
-    others match
-      case Nil        => ""
-      case one :: Nil => s"$one is typing..."
-      case many       => s"${many.mkString(", ")} are typing..."
+  private def typingText(users: Set[String]): Dom =
+    users.toList.sorted match
+      case Nil        => Dom.empty
+      case one :: Nil => span(s"$one is typing...")
+      case many       => span(s"${many.mkString(", ")} are typing...")
 
-  private def messageTemplate(msg: Message.Chat): Dom =
+  private def messageTemplate(msg: Message): Dom =
     val time = Instant
       .ofEpochMilli(msg.timestamp)
       .atZone(ZoneId.systemDefault())
@@ -114,65 +117,39 @@ object ChatServer extends ZIOAppDefault:
       dataClass("own-message") := js"${$name} === '${msg.username}'",
       dataInit                 := js"el.scrollIntoView()",
       div(
-        `class` := "message-header",
-        span(`class` := "message-username", msg.username),
+        `class`   := "message-header",
+        span(`class`   := "message-username", msg.username),
         span(
           `class`      := "delete-btn",
           dataShow     := js"${$name} === '${msg.username}'",
           dataOn.click := js"@post('/chat/delete/${msg.id}')",
           "✕",
         ),
-        span(`class` := "message-time", time),
+        span(`class`   := "message-time", time),
       ),
       div(`class` := "message-content", msg.content),
     )
 
+  private def render(currentUser: String = "") =
+    for
+      messages    <- ChatRoom.getMessages
+      typingUsers <- ChatRoom.getTypingUsers
+    yield chatPage(messages, typingUsers - currentUser)
+
   private val routes = Routes(
     Method.GET / "chat"                            -> handler {
-      Response.text(chatPage.render).addHeader("Content-Type", "text/html")
+      render().map(Response.html)
     },
     Method.GET / "chat" / "messages"               -> events {
       handler { (req: Request) =>
         for
-          rq         <- req.readSignals[JoinRequest].orElseSucceed(JoinRequest(""))
-          currentUser = rq.username
-          messages   <- ChatRoom.getMessages
-          _          <- ServerSentEventGenerator.patchElements(
-                          messages.map(messageTemplate),
-                          PatchElementOptions(
-                            selector = Some(id("messages")),
-                            mode = ElementPatchMode.Inner,
-                          ),
-                        )
-          stream     <- ChatRoom.subscribe
-          _          <- stream.mapZIO {
-                          case msg: Message.Chat              =>
-                            ServerSentEventGenerator.patchElements(
-                              messageTemplate(msg),
-                              PatchElementOptions(
-                                selector = Some(id("messages")),
-                                mode = ElementPatchMode.Append,
-                              ),
-                            )
-                          case Message.Typing(users)          =>
-                            val text = typingText(users, currentUser)
-                            ServerSentEventGenerator.patchElements(
-                              if text.isEmpty then Dom.empty
-                              else span(text),
-                              PatchElementOptions(
-                                selector = Some(id("typing-indicator")),
-                                mode = ElementPatchMode.Inner,
-                              ),
-                            )
-                          case Message.Deletion(messageId)    =>
-                            ServerSentEventGenerator.patchElements(
-                              Dom.empty,
-                              PatchElementOptions(
-                                selector = Some(id(s"msg-$messageId")),
-                                mode = ElementPatchMode.Remove,
-                              ),
-                            )
-                        }.runDrain
+          rq     <- req.readSignals[JoinRequest].orElseSucceed(JoinRequest(""))
+          page   <- render(rq.username)
+          _      <- ServerSentEventGenerator.patchElements(page)
+          stream <- ChatRoom.subscribe
+          _      <- stream.mapZIO { _ =>
+                      render(rq.username).flatMap(ServerSentEventGenerator.patchElements)
+                    }.runDrain
         yield ()
       }
     },
@@ -180,7 +157,7 @@ object ChatServer extends ZIOAppDefault:
       handler { (req: Request) =>
         for
           rq <- req.readSignals[MessageRequest]
-          msg = Message.chat(rq.username, rq.message)
+          msg = Message(rq.username, rq.message)
           _  <- ChatRoom.addMessage(msg)
           _  <- ChatRoom.clearTyping(rq.username)
         yield Response.ok
